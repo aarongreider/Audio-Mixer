@@ -1,7 +1,42 @@
-const volumeControl = document.querySelector("#volume_background");
+const sectionOneFiles = [
+  'audio/1 Wind Down.m4a',
+  'audio/1 prologue 1.m4a',
+  'audio/1 prologue 2.m4a',
+  'audio/1 prologue 3.m4a',
+  'audio/1 prologue 4.m4a',
+];
+
+const sectionTwoFiles = [
+  'audio/1 9:12.m4a',
+  'audio/1 10:12.m4a',
+  'audio/1 11:12.m4a',
+  'audio/1 12:12.m4a',
+  'audio/1 1:12.m4a',
+  'audio/1 2:12.m4a',
+  'audio/1 3:12.m4a',
+  'audio/1 4:12.m4a',
+  'audio/1 5:12.m4a',
+  'audio/1 6:12.m4a',
+  'audio/1 7:12.m4a',
+  'audio/1 8:12.m4a',
+];
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+shuffleArray(sectionTwoFiles);
+
+const noiseFile = 'audio/whitenoise.mp3';
+const allClipFiles = [...sectionOneFiles, ...sectionTwoFiles];
+
+const volumeControl = document.querySelector('#volume_background');
 let backgroundGainValue = volumeControl.value;
-//grab the input value and update the gain value when the input node has its value changed
-volumeControl.addEventListener("input", () => {
+// grab the input value and update the gain value when the input node has its value changed
+volumeControl.addEventListener('input', () => {
   backgroundGainValue = volumeControl.value;
 });
 
@@ -12,9 +47,18 @@ volumeControl.addEventListener("input", () => {
  * @returns {Promise<AudioBuffer>} The decoded audio buffer.
  */
 async function loadBuffer(ctx, url) {
-  const res = await fetch(url);
-  const arr = await res.arrayBuffer();
-  return ctx.decodeAudioData(arr);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} for ${url}`);
+    }
+
+    const arr = await res.arrayBuffer();
+    return await ctx.decodeAudioData(arr);
+  } catch (error) {
+    console.error(`Failed to decode audio at ${url}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -87,13 +131,18 @@ function createDecodeContext() {
 async function loadSourceBuffers() {
   const decodeCtx = createDecodeContext();
 
-  const [clip1Buf, clip2Buf, noiseBuf] = await Promise.all([
-    loadBuffer(decodeCtx, 'audio/1 9:12.m4a'),
-    loadBuffer(decodeCtx, 'audio/1 10:12.m4a'),
-    loadBuffer(decodeCtx, 'audio/whitenoise.mp3'),
+  const [sectionOneBuffers, sectionTwoBuffers, noiseBuf] = await Promise.all([
+    Promise.all(sectionOneFiles.map((audioFileUrl) => loadBuffer(decodeCtx, audioFileUrl))),
+    Promise.all(sectionTwoFiles.map((audioFileUrl) => loadBuffer(decodeCtx, audioFileUrl))),
+    loadBuffer(decodeCtx, noiseFile),
   ]);
 
-  return { decodeCtx, clip1Buf, clip2Buf, noiseBuf };
+  return {
+    decodeCtx,
+    sectionOneBuffers: sectionOneBuffers.filter(Boolean),
+    sectionTwoBuffers: sectionTwoBuffers.filter(Boolean),
+    noiseBuf: noiseBuf || null,
+  };
 }
 
 /**
@@ -104,30 +153,32 @@ async function loadSourceBuffers() {
  * @param {AudioBuffer} noiseBuf - Looping noise layer.
  * @returns {{offlineCtx: OfflineAudioContext, totalDuration: number}} The render context and total mix duration.
  */
-function createOfflineMixContext(clip1Buf, clip2Buf, noiseBuf) {
-  const sampleRate = clip1Buf.sampleRate;
-  const totalDuration = clip1Buf.duration + clip2Buf.duration;
+function createOfflineMixContext(sectionOneBuffers, sectionTwoBuffers, noiseBuf) {
+  const allClips = [...sectionOneBuffers, ...sectionTwoBuffers];
+  const sampleRate = allClips[0].sampleRate;
+  const totalDuration = allClips.reduce((sum, clip) => sum + clip.duration, 0);
   const totalFrames = Math.ceil(totalDuration * sampleRate);
   const offlineCtx = new OfflineAudioContext(2, totalFrames, sampleRate);
 
-  const src1 = offlineCtx.createBufferSource();
-  src1.buffer = clip1Buf;
-  src1.connect(offlineCtx.destination);
-  src1.start(0);
+  let currentTime = 0;
+  for (const clipBuffer of allClips) {
+    const source = offlineCtx.createBufferSource();
+    source.buffer = clipBuffer;
+    source.connect(offlineCtx.destination);
+    source.start(currentTime);
+    currentTime += clipBuffer.duration;
+  }
 
-  const src2 = offlineCtx.createBufferSource();
-  src2.buffer = clip2Buf;
-  src2.connect(offlineCtx.destination);
-  src2.start(clip1Buf.duration);
-
-  const noiseSrc = offlineCtx.createBufferSource();
-  noiseSrc.buffer = noiseBuf;
-  noiseSrc.loop = true;
-  const noiseGain = offlineCtx.createGain();
-  noiseGain.gain.value = backgroundGainValue;
-  noiseSrc.connect(noiseGain).connect(offlineCtx.destination);
-  noiseSrc.start(0);
-  noiseSrc.stop(totalDuration);
+  if (noiseBuf) {
+    const noiseSrc = offlineCtx.createBufferSource();
+    noiseSrc.buffer = noiseBuf;
+    noiseSrc.loop = true;
+    const noiseGain = offlineCtx.createGain();
+    noiseGain.gain.value = backgroundGainValue;
+    noiseSrc.connect(noiseGain).connect(offlineCtx.destination);
+    noiseSrc.start(0);
+    noiseSrc.stop(totalDuration);
+  }
 
   return { offlineCtx, totalDuration };
 }
@@ -138,8 +189,8 @@ function createOfflineMixContext(clip1Buf, clip2Buf, noiseBuf) {
  * @returns {Promise<{renderedBuffer: AudioBuffer, wavBlob: Blob, url: string, totalDuration: number}>}
  */
 async function renderMixedAudio() {
-  const { decodeCtx, clip1Buf, clip2Buf, noiseBuf } = await loadSourceBuffers();
-  const { offlineCtx, totalDuration } = createOfflineMixContext(clip1Buf, clip2Buf, noiseBuf);
+  const { decodeCtx, sectionOneBuffers, sectionTwoBuffers, noiseBuf } = await loadSourceBuffers();
+  const { offlineCtx, totalDuration } = createOfflineMixContext(sectionOneBuffers, sectionTwoBuffers, noiseBuf);
 
   const renderedBuffer = await offlineCtx.startRendering();
   const wavBlob = bufferToWav(renderedBuffer);
