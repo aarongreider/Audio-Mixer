@@ -1,3 +1,10 @@
+const volumeControl = document.querySelector("#volume_background");
+let backgroundGainValue = volumeControl.value;
+//grab the input value and update the gain value when the input node has its value changed
+volumeControl.addEventListener("input", () => {
+  backgroundGainValue = volumeControl.value;
+});
+
 /**
  * Fetches an audio file and decodes it into an AudioBuffer for use in the Web Audio API.
  * @param {AudioContext} ctx - The context used to decode the audio.
@@ -117,7 +124,7 @@ function createOfflineMixContext(clip1Buf, clip2Buf, noiseBuf) {
   noiseSrc.buffer = noiseBuf;
   noiseSrc.loop = true;
   const noiseGain = offlineCtx.createGain();
-  noiseGain.gain.value = 0.05;
+  noiseGain.gain.value = backgroundGainValue;
   noiseSrc.connect(noiseGain).connect(offlineCtx.destination);
   noiseSrc.start(0);
   noiseSrc.stop(totalDuration);
