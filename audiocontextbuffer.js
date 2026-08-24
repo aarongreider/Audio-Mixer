@@ -42,11 +42,11 @@ volumeControl.addEventListener('input', () => {
   backgroundGainValue = volumeControl.value;
 });
 
-const noiseFile = 'audio/whitenoise.mp3';
+let noiseFile = 'audio/white_noise/Scenic_Lake_And_Mountains.mp3';
 const whitenoiseSelect = document.getElementById('white_noise_select');
 // grab the input value and update the gain value when the input node has its value changed
-volumeControl.addEventListener('input', () => {
-  backgroundGainValue = volumeControl.value;
+whitenoiseSelect.addEventListener('input', () => {
+  noiseFile = whitenoiseSelect.value;
 });
 
 /**
