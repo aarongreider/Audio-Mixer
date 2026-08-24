@@ -5,19 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cat Marina</title>
+    <link rel="stylesheet" href="app.css">
 </head>
 
 <body>
-    <audio src="audio/1 9:12.m4a"><!-- queued first -->
-    </audio>
-    <audio src="audio/1 10:12.m4a"><!-- queued second -->
-    </audio>
-    <audio src="audio/whitenoise.m4a"> <!-- plays the whole time -->
-    </audio>
     <audio id="target" src="" controls></audio>
+    
+    <div>
+        <label for="volume_background">Background Volume</label>
+        <input type="range" id="volume_background" min="0" max=".1" value=".025" step="0.001" />
+    </div>
+    
+    <div>
+        <label for="sleepcast_length">Sleepcast Length</label>
+        <input type="range" id="sleepcast_length" min="1" max="13" value="5" step="1" />
+    </div>
+
+    <div>
+        <label for="white_noise_select">Background</label>
+        <select id="white_noise_select">
+            <option default value="audio/white_noise/Scenic_Lake_And_Mountains.mp3">Scenic Lake and Mountains</option>
+            <option value="audio/white_noise/Forest_River_Ambience.mp3">Forest River Ambience</option>
+            <option value="audio/white_noise/Lapping_Waves.mp3">Lapping Waves</option>
+            <option value="audio/white_noise/Waterfall_in_Enchanted_Forest.mp3">Waterfall in Enchanted Forest</option>
+            <option value="audio/white_noise/Soothing_Wind_Sounds.mp3">Soothing Wind Sounds</option>
+            <option value="audio/white_noise/Waterfall_White_Noise_And_Nature_Ambience.mp3">Waterfall and Nature Ambience</option>
+        </select>
+    </div>
+    
     <button id="renderBtn">render audio clips</button>
-    <!-- this is the target element the user will play with their phone locked -->
-    <input type="range" id="volume_background" min="0" max=".1" value=".025" step="0.001" />
     <script src="audiocontextbuffer.js"></script>
 </body>
 

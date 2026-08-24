@@ -1,24 +1,26 @@
 const sectionOneFiles = [
-  'audio/1 Wind Down.m4a',
-  'audio/1 prologue 1.m4a',
-  'audio/1 prologue 2.m4a',
-  'audio/1 prologue 3.m4a',
-  'audio/1 prologue 4.m4a',
+  'audio/story/Intro.ogg',
+  'audio/story/1 Wind Down.ogg',
+  'audio/story/1 prologue 1.ogg',
+  'audio/story/1 prologue 2.ogg',
+  'audio/story/1 prologue 3.ogg',
+  'audio/story/1 prologue 4.ogg',
 ];
 
 const sectionTwoFiles = [
-  'audio/1 9:12.m4a',
-  'audio/1 10:12.m4a',
-  'audio/1 11:12.m4a',
-  'audio/1 12:12.m4a',
-  'audio/1 1:12.m4a',
-  'audio/1 2:12.m4a',
-  'audio/1 3:12.m4a',
-  'audio/1 4:12.m4a',
-  'audio/1 5:12.m4a',
-  'audio/1 6:12.m4a',
-  'audio/1 7:12.m4a',
-  'audio/1 8:12.m4a',
+  'audio/story/Bonus.ogg',
+  'audio/story/1 1:12.ogg',
+  'audio/story/1 2:12.ogg',
+  'audio/story/1 3:12.ogg',
+  'audio/story/1 4:12.ogg',
+  'audio/story/1 5:12.ogg',
+  'audio/story/1 6:12.ogg',
+  'audio/story/1 7:12.ogg',
+  'audio/story/1 8:12.ogg',
+  'audio/story/1 9:12.ogg',
+  'audio/story/1 10:12.ogg',
+  'audio/story/1 11:12.ogg',
+  'audio/story/1 12:12.ogg',
 ];
 
 function shuffleArray(array) {
@@ -30,11 +32,18 @@ function shuffleArray(array) {
 
 shuffleArray(sectionTwoFiles);
 
-const noiseFile = 'audio/whitenoise.mp3';
+
 const allClipFiles = [...sectionOneFiles, ...sectionTwoFiles];
 
 const volumeControl = document.querySelector('#volume_background');
 let backgroundGainValue = volumeControl.value;
+// grab the input value and update the gain value when the input node has its value changed
+volumeControl.addEventListener('input', () => {
+  backgroundGainValue = volumeControl.value;
+});
+
+const noiseFile = 'audio/whitenoise.mp3';
+const whitenoiseSelect = document.getElementById('white_noise_select');
 // grab the input value and update the gain value when the input node has its value changed
 volumeControl.addEventListener('input', () => {
   backgroundGainValue = volumeControl.value;
