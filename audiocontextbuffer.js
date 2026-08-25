@@ -23,7 +23,7 @@ lengthInput.addEventListener('input', () => {
 });
 
 const sectionOneFiles = [
-  'audio/story/Intro.ogg',
+  'audio/story/Intro Mixdown.ogg',
   'audio/story/1 Wind Down.ogg',
   'audio/story/1 prologue 1.ogg',
   'audio/story/1 prologue 2.ogg',
