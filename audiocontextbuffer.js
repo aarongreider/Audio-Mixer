@@ -47,6 +47,10 @@ const sectionTwoFiles = [
   'audio/story/1 12:12.ogg',
 ];
 
+const sectionThreeFiles = [
+  'audio/story/1 Epilogue_01.ogg'
+]
+
 function shuffleArray(array, length) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -55,11 +59,12 @@ function shuffleArray(array, length) {
   return array
 }
 
-console.log(shuffleArray(sectionTwoFiles.slice(0, sleepcastLength), sleepcastLength))
+let allClipFiles = []
+setAllClips()
 
-
-const allClipFiles = [...sectionOneFiles, ...sectionTwoFiles];
-
+function setAllClips() {
+  allClipFiles = [...sectionOneFiles, ...shuffleArray(sectionTwoFiles.slice(0, sleepcastLength), sleepcastLength), ...sectionThreeFiles]
+}
 /**
  * Fetches an audio file and decodes it into an AudioBuffer for use in the Web Audio API.
  * @param {AudioContext} ctx - The context used to decode the audio.
@@ -240,6 +245,7 @@ function bindRenderButton() {
   const renderBtn = document.getElementById('renderBtn');
 
   renderBtn.addEventListener('click', async () => {
+    setAllClips()
     const { url } = await renderMixedAudio();
     setTargetAudioSource(url);
   });
