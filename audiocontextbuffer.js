@@ -1,3 +1,27 @@
+const volumeControl = document.querySelector('#volume_background');
+let backgroundGainValue = volumeControl.value;
+// grab the input value and update the gain value when the input node has its value changed
+volumeControl.addEventListener('input', () => {
+  backgroundGainValue = volumeControl.value;
+});
+
+const whitenoiseSelect = document.getElementById('white_noise_select');
+let noiseFile = 'audio/white_noise/Scenic_Lake_And_Mountains.mp3';
+// grab the input value and update the gain value when the input node has its value changed
+whitenoiseSelect.addEventListener('input', () => {
+  noiseFile = whitenoiseSelect.value;
+});
+
+const lengthInput = document.getElementById('sleepcast_length');
+const lengthReference = document.getElementById('length_reference');
+let sleepcastLength = lengthInput.value;
+lengthReference.textContent = sleepcastLength
+// grab the input value and update the gain value when the input node has its value changed
+lengthInput.addEventListener('input', () => {
+  sleepcastLength = lengthInput.value;
+  lengthReference.textContent = sleepcastLength
+});
+
 const sectionOneFiles = [
   'audio/story/Intro.ogg',
   'audio/story/1 Wind Down.ogg',
@@ -23,31 +47,18 @@ const sectionTwoFiles = [
   'audio/story/1 12:12.ogg',
 ];
 
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
+function shuffleArray(array, length) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array
 }
 
-shuffleArray(sectionTwoFiles);
+console.log(shuffleArray(sectionTwoFiles.slice(0, sleepcastLength), sleepcastLength))
 
 
 const allClipFiles = [...sectionOneFiles, ...sectionTwoFiles];
-
-const volumeControl = document.querySelector('#volume_background');
-let backgroundGainValue = volumeControl.value;
-// grab the input value and update the gain value when the input node has its value changed
-volumeControl.addEventListener('input', () => {
-  backgroundGainValue = volumeControl.value;
-});
-
-let noiseFile = 'audio/white_noise/Scenic_Lake_And_Mountains.mp3';
-const whitenoiseSelect = document.getElementById('white_noise_select');
-// grab the input value and update the gain value when the input node has its value changed
-whitenoiseSelect.addEventListener('input', () => {
-  noiseFile = whitenoiseSelect.value;
-});
 
 /**
  * Fetches an audio file and decodes it into an AudioBuffer for use in the Web Audio API.
@@ -140,16 +151,14 @@ function createDecodeContext() {
 async function loadSourceBuffers() {
   const decodeCtx = createDecodeContext();
 
-  const [sectionOneBuffers, sectionTwoBuffers, noiseBuf] = await Promise.all([
-    Promise.all(sectionOneFiles.map((audioFileUrl) => loadBuffer(decodeCtx, audioFileUrl))),
-    Promise.all(sectionTwoFiles.map((audioFileUrl) => loadBuffer(decodeCtx, audioFileUrl))),
+  const [clipBuffers, noiseBuf] = await Promise.all([
+    Promise.all(allClipFiles.map((audioFileUrl) => loadBuffer(decodeCtx, audioFileUrl))),
     loadBuffer(decodeCtx, noiseFile),
   ]);
 
   return {
     decodeCtx,
-    sectionOneBuffers: sectionOneBuffers.filter(Boolean),
-    sectionTwoBuffers: sectionTwoBuffers.filter(Boolean),
+    clipBuffers: clipBuffers.filter(Boolean),
     noiseBuf: noiseBuf || null,
   };
 }
@@ -162,8 +171,8 @@ async function loadSourceBuffers() {
  * @param {AudioBuffer} noiseBuf - Looping noise layer.
  * @returns {{offlineCtx: OfflineAudioContext, totalDuration: number}} The render context and total mix duration.
  */
-function createOfflineMixContext(sectionOneBuffers, sectionTwoBuffers, noiseBuf) {
-  const allClips = [...sectionOneBuffers, ...sectionTwoBuffers];
+function createOfflineMixContext(clipBuffers, noiseBuf) {
+  const allClips = [...clipBuffers];
   const sampleRate = allClips[0].sampleRate;
   const totalDuration = allClips.reduce((sum, clip) => sum + clip.duration, 0);
   const totalFrames = Math.ceil(totalDuration * sampleRate);
@@ -198,8 +207,8 @@ function createOfflineMixContext(sectionOneBuffers, sectionTwoBuffers, noiseBuf)
  * @returns {Promise<{renderedBuffer: AudioBuffer, wavBlob: Blob, url: string, totalDuration: number}>}
  */
 async function renderMixedAudio() {
-  const { decodeCtx, sectionOneBuffers, sectionTwoBuffers, noiseBuf } = await loadSourceBuffers();
-  const { offlineCtx, totalDuration } = createOfflineMixContext(sectionOneBuffers, sectionTwoBuffers, noiseBuf);
+  const { decodeCtx, clipBuffers, noiseBuf } = await loadSourceBuffers();
+  const { offlineCtx, totalDuration } = createOfflineMixContext(clipBuffers, noiseBuf);
 
   const renderedBuffer = await offlineCtx.startRendering();
   const wavBlob = bufferToWav(renderedBuffer);
@@ -231,6 +240,7 @@ function bindRenderButton() {
   const renderBtn = document.getElementById('renderBtn');
 
   renderBtn.addEventListener('click', async () => {
+    navigator.vibrate(200);
     const { url } = await renderMixedAudio();
     setTargetAudioSource(url);
   });
