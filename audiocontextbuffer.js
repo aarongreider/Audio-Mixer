@@ -240,7 +240,6 @@ function bindRenderButton() {
   const renderBtn = document.getElementById('renderBtn');
 
   renderBtn.addEventListener('click', async () => {
-    navigator.vibrate(200);
     const { url } = await renderMixedAudio();
     setTargetAudioSource(url);
   });
